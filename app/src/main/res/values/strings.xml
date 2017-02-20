@@ -1,0 +1,80 @@
+<resources>
+    <string name="app_name">Mahjong Note</string>
+    <string name="east">东</string>
+    <string name="south">南</string>
+    <string name="west">西</string>
+    <string name="north">北</string>
+    <string name="start">start!</string>
+    <string name="lizhi">立直</string>
+    <string name="liuju">流局</string>
+    <string name="zimo">自摸</string>
+    <string name="dian">点</string>
+    <string name="confirm">确定</string>
+    
+    <string name="title_activity_calculate">CalculateActivity</string>
+    <string name="yifa">一发</string>
+    <string name="menqingzimo">门清自摸</string>
+    <string name="duanyaojiu">断幺九</string>
+    <string name="pinghu">平和</string>
+    <string name="yibeikou">一杯口</string>
+    <string name="yipai">役牌</string>
+    <string name="lingshangkaihua">岭上开花</string>
+    <string name="qianggang">枪杠</string>
+    <string name="haidilaoyue">海底捞月</string>
+    <string name="hedilaoyu">河底捞鱼</string>
+
+    <string name="sansetongshun">三色同顺</string>
+    <string name="sansetongke">三色同刻</string>
+    <string name="yiqitongguan">一气通贯</string>
+    <string name="duiduihu">对对和</string>
+    <string name="sananke">三暗刻</string>
+    <string name="qiduizi">七对子</string>
+    <string name="hunquandaiyaojiu">混全带幺九</string>
+    <string name="hunlaotou">混老头</string>
+    <string name="sangangzi">三杠子</string>
+    <string name="shuanglizhi">双立直</string>
+
+    <string name="hunyise">混一色</string>
+    <string name="chunquandaiyaojiu">纯全带幺九</string>
+    <string name="erbeikou">二杯口</string>
+
+    <string name="qingyise">清一色</string>
+
+    <string name="yifan">一番</string>
+    <string name="liangfan">两番</string>
+    <string name="sanfan">三番</string>
+    <string name="liufan">六番</string>
+    <string name="yiman">役满</string>
+    <string name="yimanbeizhu">役满（请自行检查门清）</string>
+
+    <string name="others">其他</string>
+    <string name="fulu">副露</string>
+
+    <string name="fu">符</string>
+    <string name="fu20">20符</string>
+    <string name="fu30">30符</string>
+    <string name="fu40">40符</string>
+    <string name="fu50">50符</string>
+    <string name="fu60">60符</string>
+    <string name="fu70">70符</string>
+    <string name="fu80">80符</string>
+    <string name="fu90">90符</string>
+    <string name="fu100">100符</string>
+    <string name="fu110">110符</string>
+
+    <string name="lizhiStickNumHint">立直棒：</string>
+
+    <string name="one">一</string>
+    <string name="two">二</string>
+    <string name="three">三</string>
+    <string name="four">四</string>
+    <string name="five">五</string>
+    <string name="six">六</string>
+    <string name="seven">七</string>
+    <string name="eight">八</string>
+    <string name="nine">九</string>
+    <string name="ten">十</string>
+
+    <string name="ju">局</string>
+    <string name="benchang">本场</string>
+</resources>
