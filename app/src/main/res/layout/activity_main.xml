@@ -107,9 +107,13 @@
             android:paddingBottom="10dp"
             android:id="@+id/editText3"
             android:hint="username"/>
-        <Space
-            android:layout_gravity="fill"
-            android:layout_columnWeight="1" />
+        <Button
+            android:layout_columnWeight="1"
+            android:id="@+id/buttonFinish"
+            android:text="@string/finish"
+            android:onClick="finishGame"
+            android:textColor="#006400"
+            android:visibility="gone"/>
     </GridLayout>
 
     <LinearLayout
@@ -165,4 +169,10 @@
             android:text="@string/start"
             android:onClick="startGame"/>
     </LinearLayout>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="10dp"
+        android:scrollbars="vertical"
+        android:id="@+id/allRecord"/>
 </LinearLayout>

@@ -165,9 +165,15 @@ public class CalculateActivity extends AppCompatActivity {
             return;
         }
 
+        String csvString = "";
+        for (Fan fan : clickedFans) {
+            csvString += "," + MainActivity.getContext().getString(fan.getNameResourceId());
+        }
+
         // Send result back
         Intent returnIntent = new Intent();
         returnIntent.putExtra("result", totalScore);
+        returnIntent.putExtra("csv", csvString);
         setResult(Activity.RESULT_OK, returnIntent);
         finish();
     }

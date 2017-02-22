@@ -1,6 +1,7 @@
 package com.example.mahjongnote;
 
-import java.util.ArrayList;
+import android.text.TextUtils;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -31,13 +32,17 @@ final class GameStatus {
     private int lizhiStickNum = 0;
 
     private int currentPlayer = 0;
-    private int[] scores = {25000, 25000, 25000, 25000};
+    private List<Integer> scores = Arrays.asList(25000, 25000, 25000, 25000);
 
     public String getChangFullName() {
         return CHANGS.get(changName / 4) + NUMBERS.get(changName % 4)
                 + MainActivity.getContext().getString(R.string.ju)
                 + (changNum == 0 ? "" : NUMBERS.get(changNum - 1)
                         + MainActivity.getContext().getString(R.string.benchang));
+    }
+
+    public String getCsvString() {
+        return getChangFullName() + "," + TextUtils.join(",", scores);
     }
 
     public void increaseLizhiStickNum() {
@@ -60,7 +65,7 @@ final class GameStatus {
     }
 
     public void updateScore(int index, int delta) {
-        scores[index] += delta;
+        scores.set(index, scores.get(index) + delta);
     }
 
     @Override
@@ -69,7 +74,7 @@ final class GameStatus {
                 + " changNum:" + changNum
                 + " zhuang:" + zhuangIndex
                 + " lizhiStick:" + lizhiStickNum
-                + " scores:" + Arrays.toString(scores);
+                + " scores:" + TextUtils.join(", ", scores);
     }
 
     // Generated getter and setter
@@ -106,7 +111,7 @@ final class GameStatus {
         this.lizhiStickNum = lizhiStickNum;
     }
 
-    public int[] getScores() {
+    public List<Integer> getScores() {
         return scores;
     }
 }

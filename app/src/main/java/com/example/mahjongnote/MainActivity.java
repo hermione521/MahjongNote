@@ -1,13 +1,20 @@
 package com.example.mahjongnote;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.os.Environment;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.text.TextUtils;
+import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -15,13 +22,25 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
 
     private static final int USER_NUM = 4;
     private static final ColorDrawable EDIT_TEXT_BACKGROUND_COLOR_STARTED =
@@ -29,10 +48,16 @@ public class MainActivity extends AppCompatActivity {
     private static final ColorDrawable EDIT_TEXT_BACKGROUND_COLOR_PRESSED =
             new ColorDrawable(Color.parseColor("#FFFF88"));
 
-    private static final int CALCULATE_DIAN_REQUEST = 0;
-    private static final int CALCULATE_ZIMO_REQUEST = 1;
+    private static final int REQUEST_CALCULATE_DIAN = 0;
+    private static final int REQUEST_CALCULATE_ZIMO = 1;
 
     private static WeakReference<Context> mContext;
+
+    private static File outputDir = null;
+    private static File outputStoryFile = null;
+    private static File outputScoreFile = null;
+    private static FileWriter outputStoryFileWriter = null;
+    private static FileWriter outputScoreFileWriter = null;
 
     private static final List<EditText> editTextUsernames = new ArrayList<>(USER_NUM);
     private static final boolean[] usernamePressed = {false, false, false, false};
@@ -41,7 +66,6 @@ public class MainActivity extends AppCompatActivity {
     private static int winnerIndex = -1;
 
     private static final List<TextView> textViewScores = new ArrayList<>(USER_NUM);
-
 
     private static GameStatus gameStatus = null;
 
@@ -62,6 +86,10 @@ public class MainActivity extends AppCompatActivity {
         textViewScores.add((TextView)findViewById(R.id.southScore));
         textViewScores.add((TextView)findViewById(R.id.westScore));
         textViewScores.add((TextView)findViewById(R.id.northScore));
+
+        ((TextView) findViewById(R.id.allRecord)).setMovementMethod(new ScrollingMovementMethod());
+
+        verifyStoragePermissions(this);
     }
 
     @Override
@@ -80,13 +108,22 @@ public class MainActivity extends AppCompatActivity {
         // Plus changStick
         int changScore = gameStatus.getChangNum() * 300;
 
+        String csvString = gameStatus.getChangFullName() + ",";
+
         // Dian
-        if (requestCode == CALCULATE_DIAN_REQUEST) {
+        if (requestCode == REQUEST_CALCULATE_DIAN) {
             gameStatus.updateScore(winnerIndex, result + changScore);
             gameStatus.updateScore(editTextUsernames.indexOf(dianer), -result - changScore);
+
+            csvString += String.format(Locale.getDefault(), "%s,%s(%s),%d",
+                    getString(R.string.dian),
+                    editTextUsernames.get(winnerIndex).getText(),
+                    dianer.getText(),
+                    result);
         }
         // Zimo
-        if (requestCode == CALCULATE_ZIMO_REQUEST) {
+        if (requestCode == REQUEST_CALCULATE_ZIMO) {
+            int total = 0;
             // Zhuang wins
             if (winnerIndex == gameStatus.getZhuangIndex()) {
                 int per = ScoreCalculator.div3(result);
@@ -94,6 +131,7 @@ public class MainActivity extends AppCompatActivity {
                     gameStatus.updateScore(i, -per);
                 }
                 gameStatus.updateScore(winnerIndex, per * 4);
+                total = per * 3;
             } else { // Xian wins
                 int half = ScoreCalculator.div2(result);
                 int anotherHalf = ScoreCalculator.div2(half);
@@ -103,7 +141,8 @@ public class MainActivity extends AppCompatActivity {
                         gameStatus.updateScore(i, -anotherHalf);
                     }
                 }
-                gameStatus.updateScore(winnerIndex, anotherHalf * 2 + half);
+                total = anotherHalf * 2 + half;
+                gameStatus.updateScore(winnerIndex, total);
             }
             // changStick score (not related to zhuang/xian)
             for (int i = 0; i < USER_NUM; ++i) {
@@ -113,9 +152,18 @@ public class MainActivity extends AppCompatActivity {
                     gameStatus.updateScore(i, changScore);
                 }
             }
+
+            csvString += String.format(Locale.getDefault(), "%s,%s,%d",
+                    getString(R.string.zimo),
+                    editTextUsernames.get(winnerIndex).getText(),
+                    total);
         }
         // Plus lizhiStick
         gameStatus.updateScore(winnerIndex, gameStatus.getLizhiStickNum() * 1000);
+
+        // Record
+        updateOutput(outputStoryFileWriter, csvString + intent.getStringExtra("csv"));
+        updateOutput(outputScoreFileWriter, gameStatus.getCsvString());
 
         // Update game status
         gameStatus.setLizhiStickNum(0);
@@ -156,6 +204,33 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // Get public external directory and files for writing
+        if (!isExternalStorageWritable()) {
+            showSimpleAlert("External storage not writable", "And we just want to write there!");
+            return;
+        }
+        outputDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), getString(R.string.app_name));
+        if (!outputDir.exists() && !outputDir.mkdirs()) {
+            showSimpleAlert("Failed to make output directory", "We are not able to record this game.");
+            return;
+        }
+        String now = new SimpleDateFormat("yyyy-dd-MM_HH:mm:ss").format(new Date());
+        outputStoryFile = new File(outputDir, getString(R.string.app_name) + "_record_" + now + ".csv");
+        outputScoreFile = new File(outputDir, getString(R.string.app_name) + "_score_" + now + ".csv");
+        try {
+            outputStoryFileWriter = new FileWriter(outputStoryFile, true);
+            outputScoreFileWriter = new FileWriter(outputScoreFile, true);
+            updateOutput(outputStoryFileWriter, "round,event,players and remarks");
+            String scoreHeader = "round";
+            for (EditText editText : editTextUsernames) {
+                scoreHeader += "," + editText.getText();
+            }
+            updateOutput(outputScoreFileWriter, scoreHeader);
+        } catch (IOException e) {
+            showSimpleAlert("Failed to create files", e.getMessage());
+            return;
+        }
+
         // Make EditText behave like button
         for (EditText editText : editTextUsernames) {
             editText.setFocusable(false);
@@ -178,6 +253,7 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.buttonZimo).setVisibility(View.VISIBLE);
         findViewById(R.id.buttonDian).setVisibility(View.VISIBLE);
         findViewById(R.id.buttonConfirm).setVisibility(View.VISIBLE);
+        findViewById(R.id.buttonFinish).setVisibility(View.VISIBLE);
 
         // Clean state
         cancelEverything();
@@ -191,7 +267,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * onclick event for buttonLizhi, buttonLiuju, buttonZimo
+     * onClick event for buttonLizhi, buttonLiuju, buttonZimo
      */
     public void changeMahjongEventMode(View view) {
         // Reset dianer
@@ -219,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * onclick event for buttonDian (different because we need two users here)
+     * onClick event for buttonDian (different because we need two users here)
      */
     public void changeMahjongEventModeDian(View view) {
         // If already clicked, cancel everything
@@ -252,7 +328,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * onclick event for editText1~4
+     * onClick event for editText1~4
      */
     public void changedUsernamePressedOrNot(View view) {
         if (dianer != null) {
@@ -270,7 +346,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * onclick event for confirm button
+     * onClick event for confirm button
      */
     public void confirm(View view) {
         if (pressedEventButton == null) {
@@ -293,6 +369,39 @@ public class MainActivity extends AppCompatActivity {
         Log.d("reuslt", gameStatus.toString());
     }
 
+    /**
+     * onClick event for buttonFinish
+     */
+    public void finishGame(View view) {
+        new AlertDialog.Builder(this)
+                .setTitle("Finish game")
+                .setMessage("Are you sure to finish this game?")
+                .setPositiveButton("Yes",new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        try {
+                            outputScoreFileWriter.close();
+                            outputStoryFileWriter.close();
+                        } catch (IOException e) {
+                            // Don't even care
+                        }
+                        dialog.cancel();
+                        showSimpleAlert("Game finished",
+                                "Output file: "
+                                + outputStoryFile.getAbsolutePath() + ", "
+                                + outputScoreFile.getAbsolutePath());
+                    }
+                })
+                .setNegativeButton("No",new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // if this button is clicked, just close
+                        // the dialog box and do nothing
+                        dialog.cancel();
+                    }
+                })
+                .create()
+                .show();
+    }
+
     // =================================================================================
 
     private void dianHappened() {
@@ -308,7 +417,7 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, CalculateActivity.class);
         intent.putExtra("zimo", false);
         intent.putExtra("zhuang_win", winnerIndex == gameStatus.getZhuangIndex());
-        startActivityForResult(intent, CALCULATE_DIAN_REQUEST);
+        startActivityForResult(intent, REQUEST_CALCULATE_DIAN);
     }
 
     private void zimoHappened() {
@@ -324,16 +433,18 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, CalculateActivity.class);
         intent.putExtra("zimo", true);
         intent.putExtra("zhuang_win", winnerIndex == gameStatus.getZhuangIndex());
-        startActivityForResult(intent, CALCULATE_ZIMO_REQUEST);
+        startActivityForResult(intent, REQUEST_CALCULATE_ZIMO);
     }
 
     private void lizhiHappened() {
         boolean updated = false;
+        String lizhiPlayerCsv = "";
         // Update game status
         for (int i = 0; i < USER_NUM; ++i) {
             if (usernamePressed[i]) {
                 gameStatus.increaseLizhiStickNum();
                 gameStatus.updateScore(i, -1000);
+                lizhiPlayerCsv += "," + editTextUsernames.get(i).getText();
                 updated = true;
             }
         }
@@ -342,15 +453,21 @@ public class MainActivity extends AppCompatActivity {
             cancelEverything();
             updateLizhiStickNum();
             updateScores();
+
+            updateOutput(outputStoryFileWriter,
+                    gameStatus.getChangFullName() + "," + getString(R.string.lizhi) + lizhiPlayerCsv);
+            // Don't update outputScoreFile here
         }
     }
 
     private void liujuHappened() {
         // Update game status
         int tingPlayerNum = 0;
+        String tingPlayerCsv = "";
         for (int i = 0; i < USER_NUM; ++i) {
             if (usernamePressed[i]) {
                 ++tingPlayerNum;
+                tingPlayerCsv += "," + editTextUsernames.get(i).getText();
             }
         }
         if (tingPlayerNum > 0 || tingPlayerNum < USER_NUM) {
@@ -362,6 +479,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+
+        // Record
+        updateOutput(outputScoreFileWriter, gameStatus.getCsvString());
+        updateOutput(outputStoryFileWriter,
+                gameStatus.getChangFullName() + "," + getString(R.string.liuju) + tingPlayerCsv);
+
         // Check zhuang
         if (usernamePressed[gameStatus.getZhuangIndex()]) {
             gameStatus.setChangNum(gameStatus.getChangNum() + 1);
@@ -392,9 +515,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void updateScores() {
-        int scores[] = gameStatus.getScores();
+        List<Integer> scores = gameStatus.getScores();
         for (int i = 0; i < USER_NUM; ++i) {
-            textViewScores.get(i).setText(scores[i] + "");
+            textViewScores.get(i).setText(scores.get(i) + "");
         }
     }
 
@@ -451,7 +574,39 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    private void updateOutput(FileWriter writer, String str) {
+        try {
+            writer.write(str + "\n");
+            writer.flush();
+            ((TextView) findViewById(R.id.allRecord)).append(str + "\n");
+        } catch (IOException e) {
+            showSimpleAlert("Failed to write record", str);
+        }
+    }
+
+    private boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
     public static Context getContext() {
         return mContext.get();
+    }
+
+    public static void verifyStoragePermissions(Activity activity) {
+        // Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            // We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(
+                    activity,
+                    PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE
+            );
+        }
     }
 }

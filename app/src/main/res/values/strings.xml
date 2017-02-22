@@ -77,4 +77,6 @@
 
     <string name="ju">局</string>
     <string name="benchang">本场</string>
+
+    <string name="finish">手动结束</string>
 </resources>
