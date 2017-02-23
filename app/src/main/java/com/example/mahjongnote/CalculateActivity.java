@@ -29,7 +29,6 @@ public class CalculateActivity extends AppCompatActivity {
             new Fan(R.string.duanyaojiu, 1, 1),
             new Fan(R.string.pinghu, 1, 0),
             new Fan(R.string.yibeikou, 1, 0),
-            new Fan(R.string.yipai, 1, 1),
             new Fan(R.string.lingshangkaihua, 1, 1),
             new Fan(R.string.qianggang, 1, 1),
             new Fan(R.string.haidilaoyue, 1, 1),
@@ -140,10 +139,6 @@ public class CalculateActivity extends AppCompatActivity {
      * onClick event for the Confirm button
      */
     public void confirm(View view) {
-        // Dora
-        int dora = Integer.parseInt(
-                ((EditText) findViewById(R.id.editTextDora)).getText().toString());
-
         // Fan
         List<Fan> clickedFans = new ArrayList<>();
         for (int i = 0; i < FANS.size(); ++i) {
@@ -151,7 +146,18 @@ public class CalculateActivity extends AppCompatActivity {
                 clickedFans.add(FANS.get(i));
             }
         }
-        clickedFans.add(new Fan(R.string.dora, dora, dora));
+        // Dora
+        int dora = Integer.parseInt(
+                ((EditText) findViewById(R.id.editTextDora)).getText().toString());
+        if (dora > 0) {
+            clickedFans.add(new Fan(R.string.dora, dora, dora));
+        }
+        // Yipai
+        int yipai = Integer.parseInt(
+                ((EditText) findViewById(R.id.editTextYipai)).getText().toString());
+        if (yipai > 0) {
+            clickedFans.add(new Fan(R.string.yipai, yipai, yipai));
+        }
 
         // Others
         int fu = (fuButtons.indexOf(clickedFuButton) + 2) * 10;

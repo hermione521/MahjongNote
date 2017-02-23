@@ -14,7 +14,7 @@ final class Fan {
 
     public String getName() {
         String name = MainActivity.getContext().getString(nameResourceId);
-        if (nameResourceId == R.string.dora) {
+        if (nameResourceId == R.string.dora || nameResourceId == R.string.yipai) {
             name += fanshu;
         }
         return name;

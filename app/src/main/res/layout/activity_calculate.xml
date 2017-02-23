@@ -100,6 +100,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal|center_vertical"
+                    android:textColor="#000"
+                    android:textStyle="bold"
                     android:text="@string/dora"/>
                 <EditText
                     android:layout_width="wrap_content"
@@ -107,8 +109,26 @@
                     android:paddingTop="0dp"
                     android:paddingBottom="0dp"
                     android:layout_marginLeft="5dp"
+                    android:layout_marginRight="30dp"
                     android:inputType="number"
                     android:id="@+id/editTextDora"
+                    android:textSize="14sp"
+                    android:text="0"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal|center_vertical"
+                    android:textColor="#000"
+                    android:textStyle="bold"
+                    android:text="@string/yipai"/>
+                <EditText
+                    android:layout_width="wrap_content"
+                    android:layout_height="30dp"
+                    android:paddingTop="0dp"
+                    android:paddingBottom="0dp"
+                    android:layout_marginLeft="5dp"
+                    android:inputType="number"
+                    android:id="@+id/editTextYipai"
                     android:textSize="14sp"
                     android:text="0"/>
             </LinearLayout>

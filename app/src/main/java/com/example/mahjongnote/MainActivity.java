@@ -470,7 +470,7 @@ public class MainActivity extends AppCompatActivity {
                 tingPlayerCsv += "," + editTextUsernames.get(i).getText();
             }
         }
-        if (tingPlayerNum > 0 || tingPlayerNum < USER_NUM) {
+        if (tingPlayerNum > 0 && tingPlayerNum < USER_NUM) {
             for (int i = 0; i < USER_NUM; ++i) {
                 if (usernamePressed[i]) {
                     gameStatus.updateScore(i, 3000 / tingPlayerNum);
