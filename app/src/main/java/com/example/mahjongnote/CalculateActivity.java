@@ -12,6 +12,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.EditText;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -100,7 +101,7 @@ public class CalculateActivity extends AppCompatActivity {
             }
 
             CheckBox checkBox = new CheckBox(this);
-            checkBox.setText(fan.getNameResourceId());
+            checkBox.setText(fan.getName());
             checkBox.setId(i);
 
             layout.addView(checkBox, new ViewGroup.LayoutParams(
@@ -139,12 +140,20 @@ public class CalculateActivity extends AppCompatActivity {
      * onClick event for the Confirm button
      */
     public void confirm(View view) {
+        // Dora
+        int dora = Integer.parseInt(
+                ((EditText) findViewById(R.id.editTextDora)).getText().toString());
+
+        // Fan
         List<Fan> clickedFans = new ArrayList<>();
         for (int i = 0; i < FANS.size(); ++i) {
             if (((CheckBox) findViewById(i)).isChecked()) {
                 clickedFans.add(FANS.get(i));
             }
         }
+        clickedFans.add(new Fan(R.string.dora, dora, dora));
+
+        // Others
         int fu = (fuButtons.indexOf(clickedFuButton) + 2) * 10;
         boolean fulu = ((CheckBox) findViewById(R.id.fulu)).isChecked();
 
@@ -167,7 +176,7 @@ public class CalculateActivity extends AppCompatActivity {
 
         String csvString = "";
         for (Fan fan : clickedFans) {
-            csvString += "," + MainActivity.getContext().getString(fan.getNameResourceId());
+            csvString += "," + fan.getName();
         }
 
         // Send result back
