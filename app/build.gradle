@@ -22,6 +22,12 @@ android {
     }
 }
 
+repositories {
+    maven {
+        url  "http://dl.bintray.com/lukaville/maven"
+    }
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
@@ -37,5 +43,6 @@ dependencies {
     compile('com.google.apis:google-api-services-sheets:v4-rev459-1.22.0') {
         exclude group: 'org.apache.httpcomponents'
     }
+    compile 'com.nbsp:library:1.2'
     testCompile 'junit:junit:4.12'
 }

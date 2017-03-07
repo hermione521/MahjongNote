@@ -27,6 +27,7 @@ final class GameStatus {
     );
 
     private int zhuangIndex = 0;
+
     private int changName = 0; // 0:东 4:南 8:西 12:北
     private int changNum = 0; // 几本场
     private int lizhiStickNum = 0;
@@ -79,10 +80,6 @@ final class GameStatus {
 
     // Generated getter and setter
 
-    public int getCurrentPlayer() {
-        return currentPlayer;
-    }
-
     public void setCurrentPlayer(int currentPlayer) {
         this.currentPlayer = currentPlayer;
     }
@@ -93,6 +90,10 @@ final class GameStatus {
 
     public void setZhuangIndex(int zhuangIndex) {
         this.zhuangIndex = zhuangIndex;
+    }
+
+    public int getChangName() {
+        return changName;
     }
 
     public int getChangNum() {

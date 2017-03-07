@@ -10,7 +10,7 @@
     <string name="zimo">自摸</string>
     <string name="dian">点</string>
     <string name="confirm">确定</string>
-    
+
     <string name="title_activity_calculate">CalculateActivity</string>
     <string name="yifa">一发</string>
     <string name="menqingzimo">门清自摸</string>
@@ -80,4 +80,6 @@
     <string name="benchang">本场</string>
 
     <string name="finish">手动结束</string>
+
+    <string name="loadHistory">读档</string>
 </resources>

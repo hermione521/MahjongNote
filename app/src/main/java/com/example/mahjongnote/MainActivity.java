@@ -16,11 +16,17 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import com.nbsp.materialfilepicker.MaterialFilePicker;
+import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -28,19 +34,24 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static final int REQUEST_EXTERNAL_STORAGE = 10;
     private static String[] PERMISSIONS_STORAGE = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
+
+    private static final int FINISH_CHANG_NAME = 8;
+    private static final int FINISH_LEAST_SCORE = 30000;
 
     private static final int USER_NUM = 4;
     private static final ColorDrawable EDIT_TEXT_BACKGROUND_COLOR_STARTED =
@@ -50,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQUEST_CALCULATE_DIAN = 0;
     private static final int REQUEST_CALCULATE_ZIMO = 1;
+    private static final int REQUEST_PICK_FILE = 2;
 
     private static WeakReference<Context> mContext;
 
@@ -68,6 +80,13 @@ public class MainActivity extends AppCompatActivity {
     private static final List<TextView> textViewScores = new ArrayList<>(USER_NUM);
 
     private static GameStatus gameStatus = null;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +116,11 @@ public class MainActivity extends AppCompatActivity {
         if (resultCode == Activity.RESULT_CANCELED) {
             showSimpleAlert("Result not found", "We didn't receive any result requested.");
             return;
+        }
+
+        //File picker
+        if (requestCode == REQUEST_PICK_FILE) {
+            loadGameWithScoreFile(intent.getStringExtra(FilePickerActivity.RESULT_FILE_PATH));
         }
 
         int result = intent.getIntExtra("result", -1);
@@ -146,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
             }
             // changStick score (not related to zhuang/xian)
             for (int i = 0; i < USER_NUM; ++i) {
-                if (i != gameStatus.getZhuangIndex()) {
+                if (i != winnerIndex) {
                     gameStatus.updateScore(i, -changScore / 3);
                 } else {
                     gameStatus.updateScore(i, changScore);
@@ -184,9 +208,29 @@ public class MainActivity extends AppCompatActivity {
         dianer = null;
         cancelEverything();
 
+        finishGameIfShould();
+
         Log.d("reuslt", gameStatus.toString());
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.loadHistory:
+                loadHistory();
+                return true;
+            case R.id.finish:
+                finishGame();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    /**
+     * onClick event for buttonStart
+     */
     public void startGame(View view) {
         // Check usernames non-empty and unique
         Set<String> set = new HashSet<>();
@@ -253,7 +297,6 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.buttonZimo).setVisibility(View.VISIBLE);
         findViewById(R.id.buttonDian).setVisibility(View.VISIBLE);
         findViewById(R.id.buttonConfirm).setVisibility(View.VISIBLE);
-        findViewById(R.id.buttonFinish).setVisibility(View.VISIBLE);
 
         // Clean state
         cancelEverything();
@@ -369,10 +412,20 @@ public class MainActivity extends AppCompatActivity {
         Log.d("reuslt", gameStatus.toString());
     }
 
-    /**
-     * onClick event for buttonFinish
-     */
-    public void finishGame(View view) {
+    private void loadHistory() {
+        new MaterialFilePicker()
+                .withActivity(this)
+                .withRequestCode(REQUEST_PICK_FILE)
+                .withFilter(Pattern.compile(".*\\.txt$"))
+                .withHiddenFiles(true) // Show hidden files and folders
+                .start();
+    }
+
+    private void loadGameWithScoreFile(String scoreFilePath) {
+        Log.d("tag", scoreFilePath);
+    }
+
+    private void finishGame() {
         new AlertDialog.Builder(this)
                 .setTitle("Finish game")
                 .setMessage("Are you sure to finish this game?")
@@ -400,6 +453,17 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .create()
                 .show();
+    }
+
+    private void finishGameIfShould() {
+        if (gameStatus.getChangName() < FINISH_CHANG_NAME) {
+            return;
+        }
+        // Highest score
+        int highest = Collections.max(gameStatus.getScores());
+        if (highest >= FINISH_LEAST_SCORE) {
+            finishGame();
+        }
     }
 
     // =================================================================================
@@ -486,19 +550,19 @@ public class MainActivity extends AppCompatActivity {
                 gameStatus.getChangFullName() + "," + getString(R.string.liuju) + tingPlayerCsv);
 
         // Check zhuang
-        if (usernamePressed[gameStatus.getZhuangIndex()]) {
-            gameStatus.setChangNum(gameStatus.getChangNum() + 1);
-        } else {
+        if (!usernamePressed[gameStatus.getZhuangIndex()]) {
             gameStatus.increaseChangName();
-            gameStatus.setChangNum(0);
             int nextZhuang = (gameStatus.getZhuangIndex() + 1) % USER_NUM;
             gameStatus.setZhuangIndex(nextZhuang);
             gameStatus.setCurrentPlayer(nextZhuang);
         }
+        gameStatus.setChangNum(gameStatus.getChangNum() + 1);
         updateChangFullName();
         updateScores();
 
         cancelEverything();
+
+        finishGameIfShould();
     }
 
     // =================================================================================
