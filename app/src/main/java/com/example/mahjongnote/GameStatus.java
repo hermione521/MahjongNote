@@ -32,8 +32,94 @@ final class GameStatus {
     private int changNum = 0; // 几本场
     private int lizhiStickNum = 0;
 
-    private int currentPlayer = 0;
     private List<Integer> scores = Arrays.asList(25000, 25000, 25000, 25000);
+
+    public GameStatus() {}
+    public GameStatus(String lastRecord, List<String> usernames, List<Integer> scores) {
+        setGameFromLastRecord(lastRecord, usernames);
+        this.scores = scores;
+
+        int scoreLeft = 100000;
+        for (int score : scores) {
+            scoreLeft -= score;
+        }
+        lizhiStickNum = scoreLeft / 1000;
+    }
+
+    private void setGameFromLastRecord(String lastRecord, List<String> usernames) {
+        // Set chang with last record
+        setChangWithChangFullName(lastRecord.substring(0, lastRecord.indexOf(",")));
+
+        String[] split = lastRecord.split(",");
+        // Case 1: lizhi
+        // The last game was not finished, use the current chang
+        if (split[0].equals(MainActivity.getContext().getString(R.string.lizhi))) {
+            return;
+        }
+
+        // Case 2: zimo
+        // Case 3: dian
+        // Check if the winner is zhuang
+        if (split[0].equals(MainActivity.getContext().getString(R.string.zimo)) ||
+                split[0].equals(MainActivity.getContext().getString(R.string.dian))) {
+            if (split[2].equals(usernames.get(zhuangIndex))) {
+                // The winner is zhuang
+                increaseChangNum();
+            } else {
+                // Guozhuang
+                increaseChangName();
+                changNum = 0;
+            }
+            return;
+        }
+
+        // Case 4: liuju
+        // Check if zhuang tingpai
+        if (split[0].equals(MainActivity.getContext().getString(R.string.liuju))) {
+            boolean zhuangTingpai = false;
+            for (int i = 2; i < split.length; ++i) {
+                if (split[i].equals(usernames.get(zhuangIndex))) {
+                    zhuangTingpai = true;
+                    break;
+                }
+            }
+            if (!zhuangTingpai) {
+                increaseChangName();
+            }
+            increaseChangNum();
+            return;
+        }
+
+        // Case default: should not happen
+    }
+
+    private void setChangWithChangFullName(String changFullName) {
+        // Set changName
+        for (int i = 0; i < 4; ++i) {
+            if (CHANGS.get(i).equals(changFullName.substring(0, 1))) {
+                changName = i * 4;
+                break;
+            }
+        }
+        for (int i = 0; i < 4; ++i) {
+            if (NUMBERS.get(i).equals(changFullName.substring(1, 2))) {
+                changName += i;
+                zhuangIndex = i;
+                break;
+            }
+        }
+
+        // Set changNum
+        if (changFullName.length() == 3) {
+            return;
+        }
+        for (int i = 0; i < 10; ++i) {
+            if (NUMBERS.get(i).equals(changFullName.substring(3, 4))) {
+                changNum = i + 1;
+                break;
+            }
+        }
+    }
 
     public String getChangFullName() {
         return CHANGS.get(changName / 4) + NUMBERS.get(changName % 4)
@@ -79,11 +165,6 @@ final class GameStatus {
     }
 
     // Generated getter and setter
-
-    public void setCurrentPlayer(int currentPlayer) {
-        this.currentPlayer = currentPlayer;
-    }
-
     public int getZhuangIndex() {
         return zhuangIndex;
     }

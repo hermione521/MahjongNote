@@ -13,7 +13,6 @@ import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
 import android.view.Menu;
@@ -29,16 +28,19 @@ import com.nbsp.materialfilepicker.MaterialFilePicker;
 import com.nbsp.materialfilepicker.ui.FilePickerActivity;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Scanner;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -113,14 +115,17 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
-        if (resultCode == Activity.RESULT_CANCELED) {
-            showSimpleAlert("Result not found", "We didn't receive any result requested.");
+        //File picker
+        if (requestCode == REQUEST_PICK_FILE) {
+            if (resultCode == RESULT_OK) {
+                loadGameWithScoreFile(intent.getStringExtra(FilePickerActivity.RESULT_FILE_PATH));
+            }
             return;
         }
 
-        //File picker
-        if (requestCode == REQUEST_PICK_FILE) {
-            loadGameWithScoreFile(intent.getStringExtra(FilePickerActivity.RESULT_FILE_PATH));
+        if (resultCode == Activity.RESULT_CANCELED) {
+            showSimpleAlert("Result not found", "We didn't receive any result requested.");
+            return;
         }
 
         int result = intent.getIntExtra("result", -1);
@@ -197,7 +202,6 @@ public class MainActivity extends AppCompatActivity {
             gameStatus.increaseChangName();
             gameStatus.setChangNum(0);
             gameStatus.increaseZhuangIndex();
-            gameStatus.setCurrentPlayer(gameStatus.getZhuangIndex());
         }
         updateLizhiStickNum();
         updateChangFullName();
@@ -275,13 +279,19 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // Game status
+        gameStatus = new GameStatus();
+
+        startGameUI();
+    }
+
+    private void startGameUI() {
         // Make EditText behave like button
         for (EditText editText : editTextUsernames) {
             editText.setFocusable(false);
             editText.setClickable(true);
             editText.setCursorVisible(false);
             editText.setBackground(EDIT_TEXT_BACKGROUND_COLOR_STARTED);
-            final Context that = this;
             editText.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
                     changedUsernamePressedOrNot(v);
@@ -302,8 +312,7 @@ public class MainActivity extends AppCompatActivity {
         cancelEverything();
         dianer = null;
 
-        // Game status
-        gameStatus = new GameStatus();
+        // Game data
         updateLizhiStickNum();
         updateChangFullName();
         updateScores();
@@ -416,13 +425,65 @@ public class MainActivity extends AppCompatActivity {
         new MaterialFilePicker()
                 .withActivity(this)
                 .withRequestCode(REQUEST_PICK_FILE)
-                .withFilter(Pattern.compile(".*\\.txt$"))
-                .withHiddenFiles(true) // Show hidden files and folders
+                .withFilter(Pattern.compile(getString(R.string.app_name) + "_score_.*\\.csv$"))
+                .withHiddenFiles(true)
                 .start();
     }
 
     private void loadGameWithScoreFile(String scoreFilePath) {
-        Log.d("tag", scoreFilePath);
+        String content = null;
+        try {
+            content = new Scanner(new File(scoreFilePath)).useDelimiter("\\Z").next();
+        } catch (FileNotFoundException e) {
+            showSimpleAlert("Cannot read score file", scoreFilePath);
+        }
+        String recordPath = scoreFilePath.replace("_score_", "_record_");
+        String contentRecord = null;
+        try {
+            contentRecord = new Scanner(new File(recordPath)).useDelimiter("\\Z").next();
+        } catch (FileNotFoundException e) {
+            showSimpleAlert("Cannot read record file", recordPath);
+        }
+
+        if (content.indexOf("\n") == -1) {
+            showSimpleAlert("No game found", "You haven't started a single game. No need to load.");
+        }
+        String firstLine = content.substring(0, content.indexOf("\n"));
+        String lastLine = content.substring(content.lastIndexOf("\n"), content.length());
+        String recordLastLine = contentRecord.substring(content.lastIndexOf("\n"), content.length());
+        String[] firstLineSplit = firstLine.split(",");
+        String[] lastLineSplit = lastLine.split(",");
+//        Log.d("tag", lastLine.length() + "");
+//        Log.d("tag", lastLine.indexOf(getString(R.string.ju)) + "");
+
+        // File and FileWriter
+        outputStoryFile = new File(scoreFilePath);
+        outputScoreFile = new File(recordPath);
+        try {
+            outputStoryFileWriter = new FileWriter(outputStoryFile, true);
+            outputScoreFileWriter = new FileWriter(outputScoreFile, true);
+        } catch (IOException e) {
+            showSimpleAlert("Failed to create files", e.getMessage());
+            return;
+        }
+
+        // Players
+        for (int i = 0; i < USER_NUM; ++i) {
+            editTextUsernames.get(i).setText(firstLineSplit[i + 1]);
+        }
+
+        // Game status
+        List<Integer> scores = new ArrayList<>(4);
+        for (int i = 1; i < 5; ++i) {
+            scores.add(Integer.parseInt(lastLineSplit[i]));
+        }
+        gameStatus = new GameStatus(
+                recordLastLine,
+                Arrays.asList(Arrays.copyOfRange(firstLineSplit, 1, USER_NUM)),
+                scores);
+
+        // Start now!
+        startGameUI();
     }
 
     private void finishGame() {
@@ -554,7 +615,6 @@ public class MainActivity extends AppCompatActivity {
             gameStatus.increaseChangName();
             int nextZhuang = (gameStatus.getZhuangIndex() + 1) % USER_NUM;
             gameStatus.setZhuangIndex(nextZhuang);
-            gameStatus.setCurrentPlayer(nextZhuang);
         }
         gameStatus.setChangNum(gameStatus.getChangNum() + 1);
         updateChangFullName();
