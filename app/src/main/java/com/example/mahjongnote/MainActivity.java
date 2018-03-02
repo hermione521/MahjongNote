@@ -8,7 +8,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Environment;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -56,10 +55,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int FINISH_LEAST_SCORE = 30000;
 
     private static final int USER_NUM = 4;
-    private static final ColorDrawable EDIT_TEXT_BACKGROUND_COLOR_STARTED =
-            new ColorDrawable(Color.parseColor("#CCCCCC"));
-    private static final ColorDrawable EDIT_TEXT_BACKGROUND_COLOR_PRESSED =
-            new ColorDrawable(Color.parseColor("#FFFF88"));
 
     private static final int REQUEST_CALCULATE_DIAN = 0;
     private static final int REQUEST_CALCULATE_ZIMO = 1;
@@ -73,8 +68,7 @@ public class MainActivity extends AppCompatActivity {
     private static FileWriter outputStoryFileWriter = null;
     private static FileWriter outputScoreFileWriter = null;
 
-    private static final List<EditText> editTextUsernames = new ArrayList<>(USER_NUM);
-    private static final boolean[] usernamePressed = {false, false, false, false};
+    private static final List<CheckableEditTextButton> editTextUsernames = new ArrayList<>(USER_NUM);
     private Button pressedEventButton = null;
     private EditText dianer = null;
     private static int winnerIndex = -1;
@@ -97,10 +91,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         editTextUsernames.clear();
-        editTextUsernames.add((EditText)findViewById(R.id.editText1));
-        editTextUsernames.add((EditText)findViewById(R.id.editText2));
-        editTextUsernames.add((EditText)findViewById(R.id.editText3));
-        editTextUsernames.add((EditText)findViewById(R.id.editText4));
+        editTextUsernames.add((CheckableEditTextButton)findViewById(R.id.editText1));
+        editTextUsernames.add((CheckableEditTextButton)findViewById(R.id.editText2));
+        editTextUsernames.add((CheckableEditTextButton)findViewById(R.id.editText3));
+        editTextUsernames.add((CheckableEditTextButton)findViewById(R.id.editText4));
 
         textViewScores.clear();
         textViewScores.add((TextView)findViewById(R.id.eastScore));
@@ -239,7 +233,7 @@ public class MainActivity extends AppCompatActivity {
         // Check usernames non-empty and unique
         Set<String> set = new HashSet<>();
         boolean valid = true;
-        for (EditText editText : editTextUsernames) {
+        for (CheckableEditTextButton editText : editTextUsernames) {
             String text = editText.getText().toString();
             if (text.isEmpty() || set.contains(text)) {
                 valid = false;
@@ -270,7 +264,7 @@ public class MainActivity extends AppCompatActivity {
             outputScoreFileWriter = new FileWriter(outputScoreFile, true);
             updateOutput(outputStoryFileWriter, "round,event,players and remarks");
             String scoreHeader = "round";
-            for (EditText editText : editTextUsernames) {
+            for (CheckableEditTextButton editText : editTextUsernames) {
                 scoreHeader += "," + editText.getText();
             }
             updateOutput(outputScoreFileWriter, scoreHeader);
@@ -287,14 +281,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void startGameUI() {
         // Make EditText behave like button
-        for (EditText editText : editTextUsernames) {
-            editText.setFocusable(false);
-            editText.setClickable(true);
-            editText.setCursorVisible(false);
-            editText.setBackground(EDIT_TEXT_BACKGROUND_COLOR_STARTED);
+        for (CheckableEditTextButton editText : editTextUsernames) {
+            editText.becomeCheckableButton();
             editText.setOnClickListener(new View.OnClickListener() {
                 public void onClick(View v) {
-                    changedUsernamePressedOrNot(v);
+                    changedUsernamePressedOrNot((CheckableEditTextButton) v);
                 }
             });
         }
@@ -327,8 +318,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Reset username "button"
         for (int i = 0; i < USER_NUM; ++i) {
-            usernamePressed[i] = false;
-            editTextUsernames.get(i).setBackground(EDIT_TEXT_BACKGROUND_COLOR_STARTED);
+            editTextUsernames.get(i).setChecked(false);
         }
 
         // Cancel if on the same button
@@ -360,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
         int clickedUserNum = 0;
         int dianerIndex = -1;
         for (int i = 0; i < USER_NUM; ++i) {
-            if (usernamePressed[i]) {
+            if (editTextUsernames.get(i).isChecked()) {
                 ++clickedUserNum;
                 dianerIndex = i;
             }
@@ -382,19 +372,12 @@ public class MainActivity extends AppCompatActivity {
     /**
      * onClick event for editText1~4
      */
-    public void changedUsernamePressedOrNot(View view) {
+    public void changedUsernamePressedOrNot(CheckableEditTextButton button) {
         if (dianer != null) {
-            changedUsernamePressedOrNotModeDian(view);
+            changedUsernamePressedOrNotModeDian(button);
             return;
         }
-        int index = editTextUsernames.indexOf((EditText) view);
-        if (usernamePressed[index]) {
-            usernamePressed[index] = false;
-            ((EditText) view).setBackground(EDIT_TEXT_BACKGROUND_COLOR_STARTED);
-        } else {
-            usernamePressed[index] = true;
-            ((EditText) view).setBackground(EDIT_TEXT_BACKGROUND_COLOR_PRESSED);
-        }
+        button.toggle();
     }
 
     /**
@@ -445,16 +428,18 @@ public class MainActivity extends AppCompatActivity {
             showSimpleAlert("Cannot read record file", recordPath);
         }
 
-        if (content.indexOf("\n") == -1) {
+        Log.d("tag", content);
+        Log.d("tag", contentRecord);
+        if (!content.contains("\n")) {
             showSimpleAlert("No game found", "You haven't started a single game. No need to load.");
+            return;
         }
         String firstLine = content.substring(0, content.indexOf("\n"));
-        String lastLine = content.substring(content.lastIndexOf("\n"), content.length());
-        String recordLastLine = contentRecord.substring(content.lastIndexOf("\n"), content.length());
+        String lastLine = content.substring(content.lastIndexOf("\n") + 1, content.length());
+        String recordLastLine =
+                contentRecord.substring(contentRecord.lastIndexOf("\n") + 1, contentRecord.length());
         String[] firstLineSplit = firstLine.split(",");
         String[] lastLineSplit = lastLine.split(",");
-//        Log.d("tag", lastLine.length() + "");
-//        Log.d("tag", lastLine.indexOf(getString(R.string.ju)) + "");
 
         // File and FileWriter
         outputStoryFile = new File(scoreFilePath);
@@ -467,6 +452,9 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        // Display record
+        ((TextView) findViewById(R.id.allRecord)).setText(content + "\n" + contentRecord);
+
         // Players
         for (int i = 0; i < USER_NUM; ++i) {
             editTextUsernames.get(i).setText(firstLineSplit[i + 1]);
@@ -477,13 +465,14 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 1; i < 5; ++i) {
             scores.add(Integer.parseInt(lastLineSplit[i]));
         }
-        gameStatus = new GameStatus(
+        gameStatus = GameStatus.getGameStatusFromRecord(
                 recordLastLine,
-                Arrays.asList(Arrays.copyOfRange(firstLineSplit, 1, USER_NUM)),
+                Arrays.asList(Arrays.copyOfRange(firstLineSplit, 1, USER_NUM + 1)),
                 scores);
 
         // Start now!
         startGameUI();
+        Log.d("tag", gameStatus.toString());
     }
 
     private void finishGame() {
@@ -517,14 +506,34 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void finishGameIfShould() {
-        if (gameStatus.getChangName() < FINISH_CHANG_NAME) {
+        if (gameStatus.getChangName() < 7) {
             return;
         }
-        // Highest score
-        int highest = Collections.max(gameStatus.getScores());
-        if (highest >= FINISH_LEAST_SCORE) {
-            finishGame();
+
+        if (gameStatus.getChangName() == 7) {
+            if (gameStatus.getChangNum() == 0) {
+                return;
+            }
+            List<Integer> scores = gameStatus.getScores();
+            boolean zhuangTop = true;
+            for (int i = 0; i < 3; ++i) {
+                if (scores.get(i) >= scores.get(3)) {
+                    zhuangTop = false;
+                    break;
+                }
+            }
+            if (!zhuangTop) {
+                return;
+            }
         }
+
+        // gameStatus.getChangName() > 7
+        int highest = Collections.max(gameStatus.getScores());
+        if (highest < FINISH_LEAST_SCORE) {
+            return;
+        }
+
+        finishGame();
     }
 
     // =================================================================================
@@ -533,7 +542,7 @@ public class MainActivity extends AppCompatActivity {
         // Find the winner
         winnerIndex = -1;
         for (int i = 0; i < USER_NUM; ++i) {
-            if (usernamePressed[i] && editTextUsernames.get(i) != dianer) {
+            if (editTextUsernames.get(i).isChecked() && editTextUsernames.get(i) != dianer) {
                 winnerIndex = i;
                 break;
             }
@@ -549,7 +558,7 @@ public class MainActivity extends AppCompatActivity {
         // Find the winner
         winnerIndex = -1;
         for (int i = 0; i < USER_NUM; ++i) {
-            if (usernamePressed[i]) {
+            if (editTextUsernames.get(i).isChecked()) {
                 winnerIndex = i;
                 break;
             }
@@ -566,7 +575,7 @@ public class MainActivity extends AppCompatActivity {
         String lizhiPlayerCsv = "";
         // Update game status
         for (int i = 0; i < USER_NUM; ++i) {
-            if (usernamePressed[i]) {
+            if (editTextUsernames.get(i).isChecked()) {
                 gameStatus.increaseLizhiStickNum();
                 gameStatus.updateScore(i, -1000);
                 lizhiPlayerCsv += "," + editTextUsernames.get(i).getText();
@@ -590,14 +599,14 @@ public class MainActivity extends AppCompatActivity {
         int tingPlayerNum = 0;
         String tingPlayerCsv = "";
         for (int i = 0; i < USER_NUM; ++i) {
-            if (usernamePressed[i]) {
+            if (editTextUsernames.get(i).isChecked()) {
                 ++tingPlayerNum;
                 tingPlayerCsv += "," + editTextUsernames.get(i).getText();
             }
         }
         if (tingPlayerNum > 0 && tingPlayerNum < USER_NUM) {
             for (int i = 0; i < USER_NUM; ++i) {
-                if (usernamePressed[i]) {
+                if (editTextUsernames.get(i).isChecked()) {
                     gameStatus.updateScore(i, 3000 / tingPlayerNum);
                 } else {
                     gameStatus.updateScore(i, -3000 / (USER_NUM - tingPlayerNum));
@@ -611,7 +620,7 @@ public class MainActivity extends AppCompatActivity {
                 gameStatus.getChangFullName() + "," + getString(R.string.liuju) + tingPlayerCsv);
 
         // Check zhuang
-        if (!usernamePressed[gameStatus.getZhuangIndex()]) {
+        if (!editTextUsernames.get(gameStatus.getZhuangIndex()).isChecked()) {
             gameStatus.increaseChangName();
             int nextZhuang = (gameStatus.getZhuangIndex() + 1) % USER_NUM;
             gameStatus.setZhuangIndex(nextZhuang);
@@ -647,9 +656,9 @@ public class MainActivity extends AppCompatActivity {
 
     // =================================================================================
 
-    private void changedUsernamePressedOrNotModeDian(View view) {
+    private void changedUsernamePressedOrNotModeDian(CheckableEditTextButton button) {
         // If dianer is clicked again, cancel everything
-        if (view == dianer) {
+        if (button == dianer) {
             cancelEverything();
             dianer = null;
             return;
@@ -658,26 +667,23 @@ public class MainActivity extends AppCompatActivity {
         // If another user is also clicked (previously chosen winner), cancel it
         int anotherIndex = -1;
         for (int i = 0; i < USER_NUM; ++i) {
-            if (usernamePressed[i] && editTextUsernames.get(i) != dianer) {
+            if (editTextUsernames.get(i).isChecked() && editTextUsernames.get(i) != dianer) {
                 anotherIndex = i;
                 break;
             }
         }
         if (anotherIndex != -1) {
-            usernamePressed[anotherIndex] = false;
-            editTextUsernames.get(anotherIndex).setBackground(EDIT_TEXT_BACKGROUND_COLOR_STARTED);
+            editTextUsernames.get(anotherIndex).setChecked(false);
         }
 
         // Make the new clicked user winner
-        int winnerIndex = editTextUsernames.indexOf(view);
-        usernamePressed[winnerIndex] = true;
-        ((EditText) view).setBackground(EDIT_TEXT_BACKGROUND_COLOR_PRESSED);
+        int winnerIndex = editTextUsernames.indexOf(button);
+        button.setChecked(true);
     }
 
     private void cancelEverything() {
         for (int i = 0; i < USER_NUM; ++i) {
-            usernamePressed[i] = false;
-            editTextUsernames.get(i).setBackground(EDIT_TEXT_BACKGROUND_COLOR_STARTED);
+            editTextUsernames.get(i).setChecked(false);
         }
         if (pressedEventButton != null) {
             pressedEventButton.setTextColor(Color.BLACK);

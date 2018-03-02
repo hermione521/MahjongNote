@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.example.mahjongnote.MainActivity">
+    tools:context="com.example.mahjongnote.MainActivity"
+    tools:ignore="RtlHardcoded">
 
     <GridLayout
         android:layout_width="match_parent"
@@ -34,14 +35,14 @@
         <Space
             android:layout_gravity="fill"
             android:layout_columnWeight="1" />
-        <EditText
+        <com.example.mahjongnote.CheckableEditTextButton
             android:layout_gravity="fill"
             android:layout_columnWeight="1"
             android:layout_height="40dp"
             android:paddingBottom="10dp"
             android:gravity="center_horizontal"
             android:id="@+id/editText1"
-            android:hint="username"/>
+            android:hint="@string/hint_username"/>
         <Space
             android:layout_gravity="fill"
             android:layout_columnWeight="1" />
@@ -61,26 +62,26 @@
             android:gravity="center_horizontal"
             android:layout_columnWeight="1" />
     <!-- line 4 -->
-        <EditText
+        <com.example.mahjongnote.CheckableEditTextButton
             android:layout_gravity="fill"
             android:gravity="center_horizontal"
             android:layout_columnWeight="1"
             android:layout_height="40dp"
             android:paddingBottom="10dp"
             android:id="@+id/editText2"
-            android:hint="username"/>
+            android:hint="@string/hint_username"/>
         <TextView
             android:layout_gravity="fill"
             android:gravity="center_horizontal|bottom"
             android:id="@+id/westScore"/>
-        <EditText
+        <com.example.mahjongnote.CheckableEditTextButton
             android:layout_gravity="fill"
             android:gravity="center_horizontal"
             android:layout_columnWeight="1"
             android:layout_height="40dp"
             android:paddingBottom="10dp"
             android:id="@+id/editText4"
-            android:hint="username"/>
+            android:hint="@string/hint_username"/>
     <!-- line 5 -->
         <TextView
             android:layout_gravity="fill"
@@ -99,14 +100,14 @@
         <Space
             android:layout_gravity="fill"
             android:layout_columnWeight="1" />
-        <EditText
+        <com.example.mahjongnote.CheckableEditTextButton
             android:layout_gravity="fill"
             android:gravity="center_horizontal"
             android:layout_columnWeight="1"
             android:layout_height="40dp"
             android:paddingBottom="10dp"
             android:id="@+id/editText3"
-            android:hint="username"/>
+            android:hint="@string/hint_username"/>
     </GridLayout>
 
     <LinearLayout
